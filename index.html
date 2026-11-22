@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Team To Do</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#2564cf">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f2f1;--card:#fff;--tx:#201f1e;--mut:#6b6a69;--ac:#2564cf;--bd:#e1dfdd;--ok:#107c10}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1a19;--card:#292827;--tx:#f3f2f1;--mut:#a19f9d;--ac:#6ea0f5;--bd:#3b3a39;--ok:#6bd16b}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;font:15px/1.4 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+aside{background:var(--card);border-right:1px solid var(--bd);padding:16px;display:flex;flex-direction:column;gap:6px}
+h1{font-size:18px;margin:0 0 8px;color:var(--ac)}h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:14px 0 4px}
+.li{padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between}
+.li:hover{background:var(--bg)}.li.on{background:var(--bg);font-weight:600;border-left:3px solid var(--ac)}
+input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px}
+button{cursor:pointer}button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+main{padding:24px;max-width:820px;width:100%}
+.add{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.add input{flex:1;min-width:160px}
+.t{background:var(--card);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;gap:12px;align-items:center}
+.ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--ac);flex:none;cursor:pointer;display:grid;place-items:center;background:none;padding:0}
+.t.done .ck{background:var(--ok);border-color:var(--ok);color:#fff}.t.done .ck:after{content:"✓";font-size:13px}
+.t.done .ti{text-decoration:line-through;color:var(--mut)}
+.ti{flex:1}.meta{font-size:12px;color:var(--mut)}.by{color:var(--ok);font-weight:600}
+.x{border:none;background:none;color:var(--mut);padding:4px}
+.chip{display:inline-block;background:var(--bg);border-radius:12px;padding:2px 8px;font-size:12px;margin:2px 4px 2px 0}
+.row{display:flex;gap:6px;margin-top:4px}.row input{flex:1;min-width:0}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:12px}
+.note{font-size:12px;color:var(--mut)}
+@media(max-width:700px){.app{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--bd)}}
+</style></head><body>
+<div class="app">
+<aside>
+ <h1>✔ Team To Do</h1>
+ <div id="lists"></div>
+ <div class="row"><input id="nl" placeholder="New list"><button id="al">+</button></div>
+ <h3>Team members</h3><div id="mem"></div>
+ <div class="row"><input id="nm" placeholder="Add member"><button id="am">+</button></div>
+ <h3>I am</h3><select id="me"></select>
+ <div class="bar"><button id="gs">☁ Sign in to Google Drive</button><button id="inst" hidden>📲 Install app</button><button id="exp">⬇ Backup JSON</button><button id="imp">⬆ Restore</button><input id="file" type="file" accept=".json" hidden></div>
+ <div class="note" id="st"></div>
+</aside>
+<main>
+ <h2 id="ln" style="margin-top:0"></h2>
+ <div class="add"><input id="nt" placeholder="Add a task"><select id="as"></select><button class="p" id="at">Add</button></div>
+ <div id="open"></div><h3 id="dh">Completed</h3><div id="dn"></div>
+</main></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ===== SETTINGS: the only part you edit ===== */
+const CONFIG={
+ // Google Cloud -> APIs & Services -> Credentials -> OAuth client ID (Web). Paste it here:
+ googleClientId:"662396230702-gcactc5ctmvj43vmh16v4nq13jr54eqg.apps.googleusercontent.com",
+ // Optional: Drive folder ID where the shared data file is created (blank = My Drive root)
+ driveFolderId:"",
+ // Optional: SHA-256 hash of the password to add/remove members ("" = no password). Make one in the browser console:
+ // crypto.subtle.digest("SHA-256",new TextEncoder().encode("YOUR_PASSWORD")).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")))
+ adminHash:""
+};
+/* ============================================= */
+const mem={},LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}};
+let S={lists:[],members:[],tasks:[],deleted:{}},cur="inbox";
+const $=i=>document.getElementById(i),uid=()=>Math.random().toString(36).slice(2,10);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const saveLocal=()=>{try{LS.set("ttd",JSON.stringify(S))}catch(e){}};
+try{Object.assign(S,JSON.parse(LS.get("ttd")||"{}"))}catch(e){}
+async function put(n,o){if(!o.id)o.id=uid();o.u=Date.now();const i=S[n].findIndex(x=>x.id===o.id);i<0?S[n].push(o):S[n][i]=o;render();saveLocal();later()}
+async function del(n,id){S[n]=S[n].filter(x=>x.id!==id);S.deleted[id]=Date.now();render();saveLocal();later()}
+/* ---- Google Drive sync: one JSON file shared by the team ---- */
+const FN="team-todo-data.json",API="https://www.googleapis.com/";
+let tok=null,tokExp=0,tc=null,syncing=false,tm=null,fileId=LS.get("ttd_fid")||"";
+const later=()=>{if(tok){clearTimeout(tm);tm=setTimeout(sync,2000)}};
+function getToken(interactive){return new Promise((res,rej)=>{if(tok&&Date.now()<tokExp-60000)return res(tok);
+ if(!window.google||!CONFIG.googleClientId)return rej({error:"not configured"});
+ tc=tc||google.accounts.oauth2.initTokenClient({client_id:CONFIG.googleClientId,scope:API+"auth/drive",callback:()=>{}});
+ tc.callback=r=>{if(r.error)return rej(r);tok=r.access_token;tokExp=Date.now()+r.expires_in*1000;LS.set("ttd_gs","1");res(tok)};
+ tc.error_callback=rej;tc.requestAccessToken({prompt:interactive?"select_account":""})})}
+async function g(path,o={}){const r=await fetch(API+path,{...o,headers:{...(o.headers||{}),Authorization:"Bearer "+tok}});
+ if(!r.ok)throw{status:r.status};return r.json()}
+function merge(r){const D={...(S.deleted||{})};for(const k in(r.deleted||{}))D[k]=Math.max(D[k]||0,r.deleted[k]);
+ for(const n of["lists","members","tasks"]){const m=new Map();[...S[n],...(r[n]||[])].forEach(o=>{const p=m.get(o.id);if(!p||(o.u||0)>(p.u||0))m.set(o.id,o)});
+  S[n]=[...m.values()].filter(o=>!(D[o.id]>(o.u||0)))}S.deleted=D}
+async function sync(interactive){if(syncing)return;syncing=true;const st=$("st");
+ try{await getToken(!!interactive);$("gs").textContent="☁ Sync now";
+  if(!fileId){const q=encodeURIComponent(`name='${FN}' and trashed=false`);const l=await g(`drive/v3/files?q=${q}&fields=files(id)&orderBy=createdTime&supportsAllDrives=true&includeItemsFromAllDrives=true`);fileId=l.files[0]?.id||""}
+  if(fileId){try{merge(await g(`drive/v3/files/${fileId}?alt=media`))}catch(e){if(e.status===404)fileId="";else throw e}}
+  saveLocal();render();const body=JSON.stringify(S);
+  if(fileId)await g(`upload/drive/v3/files/${fileId}?uploadType=media`,{method:"PATCH",headers:{"Content-Type":"application/json"},body});
+  else{const meta={name:FN,mimeType:"application/json"};if(CONFIG.driveFolderId)meta.parents=[CONFIG.driveFolderId];
+   const bd="b"+uid(),mp=`--${bd}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(meta)}\r\n--${bd}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${bd}--`;
+   fileId=(await g("upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+bd},body:mp})).id}
+  LS.set("ttd_fid",fileId);st.textContent="Drive synced "+new Date().toLocaleTimeString()}
+ catch(e){if(e.status===401)tok=null;st.textContent="Drive: "+(e.error||e.status||"sync failed")+" (tap Sync)"}
+ finally{syncing=false}}
+async function admin(){if(!CONFIG.adminHash)return true;const p=prompt("Admin password:");if(p===null)return false;
+ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(p));const h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+ if(h===CONFIG.adminHash)return true;$("st").textContent="Wrong password";return false}
+const who=()=>$("me").value||LS.get("ttd_me")||"Someone";
+function render(){
+ const L=[{id:"inbox",name:"Tasks"},...S.lists.slice().sort((a,b)=>a.name>b.name?1:-1)];
+ if(!L.find(l=>l.id===cur))cur="inbox";
+ $("lists").innerHTML=L.map(l=>`<div class="li ${l.id===cur?"on":""}" data-l="${l.id}"><span>${esc(l.name)}</span><span class="meta">${S.tasks.filter(t=>t.list===l.id&&!t.done).length}</span></div>`).join("");
+ $("ln").textContent=L.find(l=>l.id===cur).name;
+ const ms=S.members.slice().sort((a,b)=>a.name>b.name?1:-1),opts=ms.map(m=>`<option>${esc(m.name)}</option>`).join("");
+ $("mem").innerHTML=ms.map(m=>`<span class="chip">${esc(m.name)} <a href="#" data-dm="${m.id}" style="color:var(--mut);text-decoration:none">×</a></span>`).join("")||'<span class="note">No members yet</span>';
+ const k=$("me").value||LS.get("ttd_me")||"",ka=$("as").value;
+ $("me").innerHTML='<option value="">Choose your name</option>'+opts;$("me").value=k;
+ $("as").innerHTML='<option value="">Unassigned</option>'+opts;$("as").value=ka;
+ const T=S.tasks.filter(t=>t.list===cur).sort((a,b)=>b.created-a.created);
+ const row=t=>`<div class="t ${t.done?"done":""}"><button class="ck" data-c="${t.id}" title="Toggle"></button><div class="ti">${esc(t.title)}<div class="meta">${t.assignee?"Assigned to "+esc(t.assignee)+" · ":""}Added by ${esc(t.by||"?")}${t.done?` · <span class="by">✓ Completed by ${esc(t.doneBy)}</span> on ${new Date(t.doneAt).toLocaleString()}`:""}</div></div><button class="x" data-d="${t.id}">🗑</button></div>`;
+ $("open").innerHTML=T.filter(t=>!t.done).map(row).join("")||'<div class="note">Nothing to do 🎉</div>';
+ const d=T.filter(t=>t.done);$("dh").style.display=d.length?"":"none";$("dn").innerHTML=d.sort((a,b)=>b.doneAt-a.doneAt).map(row).join("");
+}
+document.addEventListener("click",async e=>{const g=a=>e.target.closest("["+a+"]")?.getAttribute(a);let v;
+ if(v=g("data-l")){cur=v;render()}
+ else if(v=g("data-c")){if(!$("me").value){$("st").textContent="⚠ Choose your name first ('I am' in the sidebar)";return}
+  const t=S.tasks.find(x=>x.id===v);put("tasks",t.done?{...t,done:false,doneBy:null,doneAt:null}:{...t,done:true,doneBy:who(),doneAt:Date.now()})}
+ else if(v=g("data-d")){del("tasks",v)}
+ else if(v=g("data-dm")){e.preventDefault();if(await admin())del("members",v)}});
+$("me").onchange=()=>LS.set("ttd_me",$("me").value);
+function addT(){const v=$("nt").value.trim();if(!v)return;put("tasks",{title:v,list:cur,assignee:$("as").value,by:who(),done:false,created:Date.now()});$("nt").value=""}
+$("at").onclick=addT;$("nt").onkeydown=e=>{if(e.key==="Enter")addT()};
+async function addM(){const v=$("nm").value.trim();if(!v||S.members.find(m=>m.name===v))return;if(await admin()){put("members",{name:v});$("nm").value=""}}
+$("am").onclick=addM;$("nm").onkeydown=e=>{if(e.key==="Enter")addM()};
+function addL(){const v=$("nl").value.trim();if(v){const o={name:v,id:uid()};cur=o.id;put("lists",o)}$("nl").value=""}
+$("al").onclick=addL;$("nl").onkeydown=e=>{if(e.key==="Enter")addL()};
+$("exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({exported:new Date().toISOString(),...S},null,2)],{type:"application/json"}));
+ a.download="team-todo-backup-"+new Date().toISOString().slice(0,10)+".json";a.click()};
+$("imp").onclick=()=>$("file").click();
+$("file").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());for(const n of["lists","members","tasks"])for(const o of j[n]||[])await put(n,o);$("st").textContent="Restored."}catch(x){$("st").textContent="Invalid backup file."}};
+$("gs").onclick=()=>sync(true);
+if(!CONFIG.googleClientId){$("gs").hidden=true;$("st").textContent="This-device-only mode (add Google client ID in index.html for Drive sync)"}
+else{$("st").textContent="Not signed in to Google Drive";
+ if(LS.get("ttd_gs"))addEventListener("load",()=>setTimeout(()=>sync(false),800));
+ setInterval(()=>{if(tok&&!document.hidden)sync()},30000)}
+let dip=null;addEventListener("beforeinstallprompt",e=>{e.preventDefault();dip=e;$("inst").hidden=false});
+$("inst").onclick=async()=>{if(dip){dip.prompt();dip=null;$("inst").hidden=true}};
+if(/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone)$("st").textContent+=" · iPhone: Share → Add to Home Screen to install";
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+render();
+</script></body></html>
