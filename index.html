@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#22305a"><title>Team To Do</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--ink:#22305a;--ink2:#3b4a86;--line:#d3d9e6;--bg:#f2f4f9;--ok:#117a4d;--bad:#b3261e;--r:14px;--top:54px;--sat:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);font:15px/1.35 system-ui,"Segoe UI",Roboto,Arial,sans-serif;color:#18202f;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+button{font:inherit;border:0;border-radius:10px;background:#fff;color:var(--ink);cursor:pointer}
+input,select{font:inherit;font-size:16px;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;color:#111;min-width:0}
+.top{position:sticky;top:0;z-index:20;height:calc(var(--top) + var(--sat));padding:var(--sat) 14px 0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--ink),var(--ink2));color:#fff}
+.top small{display:block;font-size:11px;opacity:.7;letter-spacing:.6px;text-transform:uppercase}.top b{font-size:17px}.r{display:flex;align-items:center;gap:10px}
+.st{font-size:12px;opacity:.85}.st.off{color:#ffb4ab}.mb{width:40px;height:40px;border-radius:50%;background:#ffffff26;color:#fff;font-size:22px;line-height:1}
+.menu{display:none;position:fixed;top:calc(var(--top) + var(--sat));right:10px;z-index:30;min-width:220px;padding:6px;background:#fff;border-radius:12px;box-shadow:0 8px 28px #0003}.menu.on{display:block}
+.menu button{display:block;width:100%;text-align:left;padding:12px 14px;background:none;border-radius:8px}.menu button:active{background:var(--bg)}.menu button[hidden]{display:none}
+.who{padding:10px 14px;border-bottom:1px solid var(--line);margin-bottom:4px}.who small{color:#667}
+.view{max-width:640px;margin:0 auto;padding:10px}body[data-tab=team] #v-tasks,body:not([data-tab=team]) #v-team{display:none}
+.card{background:#fff;border-radius:var(--r);box-shadow:0 1px 4px #1a285a22;padding:12px;margin-bottom:10px}.card h3{margin:0 0 8px;font-size:15px;color:var(--ink)}
+.ar{display:flex;gap:6px}.ar input{flex:1}.ar button{height:42px;padding:0 14px;border:1px solid var(--line)}.ar .go,.go{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:700}
+#opt{display:none;gap:6px;flex-wrap:wrap;margin-top:8px}#opt.on{display:flex}#opt>*{flex:1 1 40%}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px}.chips button{flex:none;padding:7px 13px;border:1px solid var(--line);border-radius:20px;font-size:14px}.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.t{background:#fff;border-radius:var(--r);box-shadow:0 1px 4px #1a285a22;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.ck{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--ink2);background:none;padding:0;color:#fff;font-size:15px}.t.dn .ck{background:var(--ok);border-color:var(--ok)}.t.dn .ck:after{content:"✓"}
+.ti{flex:1;min-width:0}.ttl{word-break:break-word;font-weight:600}.t.dn .ttl{text-decoration:line-through;color:#8a93a8}.meta{font-size:12px;color:#667}.od{color:var(--bad);font-weight:700}
+.by{font-size:13px;font-weight:700;color:var(--ok);margin-top:2px}.x{background:none;color:#8a93a8;font-size:13px;padding:4px 6px}.x.arm{color:var(--bad);font-weight:700}
+h4{margin:14px 2px 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#667}.empty{color:#667;text-align:center;padding:18px}
+.u{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0}.u small{display:block;color:#667}.uadd{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bnav button{flex:1;padding:8px 4px 7px;border-radius:0;background:none;color:#6b7590;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px}.bnav button[hidden]{display:none}
+.bnav span{font-size:20px;line-height:1}.bnav i{font-style:normal}.bnav button.on{color:var(--ink);font-weight:700;box-shadow:inset 0 3px 0 var(--ink)}
+#login{position:fixed;inset:0;z-index:50;background:linear-gradient(135deg,var(--ink),var(--ink2));display:flex;align-items:center;justify-content:center;padding:20px}
+.lc{background:#fff;border-radius:18px;padding:28px 22px;text-align:center;max-width:340px;width:100%}.lc h1{margin:0 0 6px;color:var(--ink);font-size:22px}.lc p{color:#667;min-height:40px}
+body.out .top,body.out .bnav,body.out main{display:none}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.tst{background:var(--ink);color:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 4px 14px #0004;pointer-events:auto}.tst b{display:block}
+@media(min-width:700px){body{padding-bottom:80px}}
+</style></head>
+<body class="out" data-tab="all">
+<div id="login"><div class="lc"><h1>✔ Team To Do</h1><p id="lm">Sign in with the Google account your master added.</p><div id="gbtn" style="display:flex;justify-content:center;min-height:44px"></div></div></div>
+<header class="top"><div><small>Team To Do</small><b id="ttl">All tasks</b></div><div class="r"><span id="st" class="st"></span><button class="mb" id="mb" aria-label="Menu">&#8942;</button></div></header>
+<div class="menu" id="menu"><div class="who" id="who"></div>
+ <button id="nf">🔔 Enable notifications</button><button id="inst" hidden>📲 Install app</button><button id="sy">🔄 Sync now</button>
+ <button id="ex" class="mo" hidden>⬇ Export backup file</button><button id="bk" class="mo" hidden>☁ Backup to Drive now</button><button id="so">Sign out</button></div>
+<main>
+<section id="v-tasks" class="view">
+ <div class="card"><div class="ar"><input id="nt" placeholder="Add a task" autocomplete="off"><button id="ob" title="Options">⚙</button><button class="go" id="at">Add</button></div>
+  <div id="opt"><select id="as"></select><input type="datetime-local" id="rm" title="Reminder"><select id="rp"><option value="">No repeat</option><option value="daily">Daily task</option><option value="weekly">Weekly task</option></select></div></div>
+ <div class="chips" id="chips"></div><div id="open"></div><h4 id="dh">Completed</h4><div id="dn"></div>
+</section>
+<section id="v-team" class="view">
+ <div class="card"><h3>Team members</h3><div id="ulist"></div>
+  <div class="uadd"><input id="nu_em" type="email" placeholder="Member's Google email" autocapitalize="none" autocomplete="off"><input id="nu_nm" placeholder="Name shown on tasks" autocomplete="off"><button class="go" id="uadd" style="height:42px">+ Add member</button></div></div>
+ <div class="card"><h3>How it works</h3><div class="meta">Only people you add here can sign in. They can add, edit and complete tasks, and their name is saved on every task they complete. Only you (master) can assign tasks to others and delete tasks. All data is stored in your Google Drive (team-todo-db.json).</div></div>
+</section></main>
+<nav class="bnav"><button data-t="all" class="on"><span>📋</span>All tasks</button><button data-t="mine"><span>👤</span><i id="mc">My tasks</i></button><button data-t="team" id="tt" hidden><span>⚙️</span>Team</button></nav>
+<div id="toast"></div>
+<script>
+const APP={SERVER:'https://script.google.com/macros/s/AKfycbzLgyu4gh8YKM54SsJMNAFaI3j7Xnec4MoAQPm0qXNQ_HkCxCcW8TY5kHxxFQ0XGC_G/exec',CLIENT_ID:'662396230702-gcactc5ctmvj43vmh16v4nq13jr54eqg.apps.googleusercontent.com'};  /* <- paste your Apps Script web app URL into SERVER */
+const mem={},LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){mem[k]=v}},del:k=>{try{localStorage.removeItem(k)}catch(e){delete mem[k]}}};
+const $=s=>document.querySelector(s),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6),DAY=864e5;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=x=>new Date(x).toLocaleString([],{dateStyle:'medium',timeStyle:'short'});
+const J=(k,d)=>{try{return JSON.parse(LS.get(k))||d}catch(e){return d}};
+let SES=J('tt_ses',null),D=J('tt_d',{tasks:[],people:[],users:[]}),PEND=J('tt_p',{t:{},d:[]}),tab='all',fp='',seen=null,busy=false,started=false,dip=null,tm=null;
+const isM=()=>SES&&SES.me.role==='master',my=()=>SES?SES.me.name:'';
+const saveD=()=>{LS.set('tt_d',JSON.stringify(D));LS.set('tt_ses',JSON.stringify(SES))},saveP=()=>LS.set('tt_p',JSON.stringify(PEND));
+function toast(h,b){const e=document.createElement('div');e.className='tst';e.innerHTML='<b>'+esc(h)+'</b>'+esc(b||'');e.onclick=()=>e.remove();$('#toast').appendChild(e);setTimeout(()=>e.remove(),6000)}
+function setSt(s){const e=$('#st');e.className='st '+s;e.textContent={ok:Object.keys(PEND.t).length+PEND.d.length?'Saving…':'Synced',busy:'Syncing…',off:'Offline'}[s]}
+async function api(action,data){
+ if(!APP.SERVER)throw new Error('Server address is missing in index.html');
+ const r=await fetch(APP.SERVER,{method:'POST',body:JSON.stringify({action,token:SES&&SES.token,...data}),redirect:'follow'});const j=await r.json();
+ if(action!=='login'&&(j.error==='auth'||j.error==='denied')){out(j.error==='denied'?'The master removed your access.':'Session ended. Please sign in again.');throw new Error(j.error)}return j}
+function apply(j){D={tasks:j.tasks,people:j.people,users:j.users||[]};SES.me=j.me;saveD()}
+function out(msg){LS.del('tt_ses');SES=null;document.body.className='out';$('#login').style.display='flex';$('#lm').textContent=msg||'Sign in with the Google account your master added.'}
+/* ---- sync: send pending changes, receive everyone's tasks ---- */
+async function sync(manual){if(busy||!SES)return;busy=true;setSt('busy');const t=PEND.t,d=PEND.d;PEND={t:{},d:[]};
+ try{const j=await api('push',{tasks:Object.values(t),del:d});if(j.error)throw new Error(j.error);apply(j);diffNotify();setSt('ok')}
+ catch(e){PEND.t={...t,...PEND.t};PEND.d=[...d,...PEND.d];setSt('off');if(manual)toast('Sync failed',e.message)}
+ busy=false;saveP();render()}
+const later=()=>{clearTimeout(tm);tm=setTimeout(sync,700)};
+const tasks=()=>{const m=new Map(D.tasks.map(t=>[t.id,t]));Object.values(PEND.t).forEach(t=>m.set(t.id,t));PEND.d.forEach(i=>m.delete(i));return[...m.values()]};
+function change(t){t.u=Date.now();PEND.t[t.id]=t;saveP();render();later()}
+function spawn(t){const step=t.rep==='weekly'?7*DAY:DAY,now=Date.now();let due=null,from;
+ if(t.due){due=t.due+step;while(due<=now)due+=step;const d=new Date(due);d.setHours(0,0,0,0);from=d.getTime()}else{const d=new Date();d.setHours(0,0,0,0);from=d.getTime()+step}
+ change({id:uid(),title:t.title,assignee:t.assignee,by:t.by,rep:t.rep,done:false,created:now,due,from,rec:true})}
+/* ---- notifications / reminders ---- */
+function notify(h,b){toast(h,b);try{if(window.Notification&&Notification.permission==='granted'){const o={body:b,icon:'icon-192.png',tag:h+b};
+ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(h,o):new Notification(h,o)).catch(()=>{});else new Notification(h,o)}}catch(e){}}
+function diffNotify(){const cur=new Map(D.tasks.map(t=>[t.id,t.done])),me=my();
+ if(seen)D.tasks.forEach(t=>{if(!seen.has(t.id)){if(t.assignee===me&&t.by!==me&&!t.rec)notify('New task for you',t.title)}else if(!seen.get(t.id)&&t.done&&t.doneBy!==me&&t.by===me)notify('Task completed',t.doneBy+' completed: '+t.title)});seen=cur}
+function tick(){if(!SES)return;const now=Date.now(),n=J('tt_n',{});let ch=false;
+ tasks().forEach(t=>{if(t.done||!t.due||t.due>now||n[t.id]===t.due)return;if(t.assignee&&t.assignee!==my())return;n[t.id]=t.due;ch=true;if(now-t.due<DAY)notify('⏰ Reminder',t.title)});
+ if(ch)LS.set('tt_n',JSON.stringify(n));render()}
+const nfUp=()=>{if(!window.Notification){$('#nf').hidden=true;return}const p=Notification.permission;$('#nf').textContent=p==='granted'?'🔔 Notifications on':p==='denied'?'🔕 Blocked in browser':'🔔 Enable notifications'};
+/* ---- actions ---- */
+function addT(){const v=$('#nt').value.trim();if(!v||!SES)return;const d=$('#rm').value;
+ change({id:uid(),title:v,assignee:(isM()&&$('#as').value)||(tab==='mine'?my():''),by:my(),created:Date.now(),done:false,due:d?new Date(d).getTime():null,rep:$('#rp').value});$('#nt').value='';$('#rm').value=''}
+function toggle(id){const o=tasks().find(x=>x.id===id);if(!o)return;const t={...o};
+ if(t.done){t.done=false;t.doneBy=null;t.doneAt=null}else{t.done=true;t.doneBy=my();t.doneAt=Date.now();if(t.rep)spawn(t)}change(t)}
+function arm(b,txt,fn){if(b.dataset.a){fn();return}b.dataset.a=1;b.classList.add('arm');b.textContent='Tap again to confirm';setTimeout(()=>{b.dataset.a='';b.classList.remove('arm');b.textContent=txt},3000)}
+async function adm(action,data){const j=await api(action,data);if(j.error){toast('Error',j.error);return false}apply(j);render();return true}
+/* ---- render ---- */
+function row(t){return `<div class="t ${t.done?'dn':''}"><button class="ck" data-c="${esc(t.id)}" aria-label="Done"></button><div class="ti"><div class="ttl" data-e="${esc(t.id)}">${esc(t.title)}</div>
+ <div class="meta">${t.assignee?'👤 '+esc(t.assignee)+' · ':''}added by ${esc(t.by||'?')}${t.due&&!t.done?` · <span class="${t.due<Date.now()?'od':''}">⏰ ${fmt(t.due)}</span>`:''}${t.rep?' · 🔁 '+t.rep:''}</div>
+ ${t.done?`<div class="by">✓ Completed by ${esc(t.doneBy)} · ${fmt(t.doneAt)}</div>`:''}</div>${isM()?`<button class="x" data-d="${esc(t.id)}">🗑</button>`:''}</div>`}
+function render(){if(!SES)return;const me=my(),all=tasks(),vis=t=>!t.from||t.from<=Date.now();
+ document.body.dataset.tab=tab;document.body.className='';$('#login').style.display='none';
+ $('#ttl').textContent={all:'All tasks',mine:'My tasks',team:'Team'}[tab];
+ $('#who').innerHTML=`<b>${esc(me)}</b><small>${esc(SES.me.email)} · ${isM()?'Master':'Member'}</small>`;
+ document.querySelectorAll('.mo').forEach(b=>b.hidden=!isM());$('#tt').hidden=!isM();$('#as').hidden=!isM();
+ document.querySelectorAll('.bnav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ const mine=all.filter(t=>t.assignee===me&&!t.done&&vis(t)).length;$('#mc').textContent=mine?`My tasks (${mine})`:'My tasks';
+ const as=$('#as'),k=as.value;as.innerHTML='<option value="">Unassigned</option>'+D.people.map(p=>`<option>${esc(p)}</option>`).join('');as.value=k;
+ $('#chips').style.display=tab==='all'?'flex':'none';
+ $('#chips').innerHTML=['',...D.people].map(p=>`<button class="${fp===p?'on':''}" data-f="${esc(p)}">${p?esc(p):'Everyone'}</button>`).join('');
+ if(tab!=='team'){const L=all.filter(t=>tab==='mine'?t.assignee===me:(!fp||t.assignee===fp));
+  const op=L.filter(t=>!t.done&&vis(t)).sort((a,b)=>(a.due||9e15)-(b.due||9e15)),dn=L.filter(t=>t.done).sort((a,b)=>b.doneAt-a.doneAt).slice(0,40);
+  $('#open').innerHTML=op.map(row).join('')||'<div class="empty">Nothing to do 🎉</div>';$('#dh').style.display=dn.length?'':'none';$('#dn').innerHTML=dn.map(row).join('')}
+ else $('#ulist').innerHTML=`<div class="u"><div><b>${esc(me)}</b><small>${esc(SES.me.email)} · master</small></div></div>`+D.users.map(u=>`<div class="u"><div><b>${esc(u.name)}</b><small>${esc(u.email)}</small></div><button class="x" data-u="${esc(u.email)}">Remove</button></div>`).join('')}
+document.addEventListener('click',e=>{const g=a=>{const el=e.target.closest('['+a+']');return el&&el.getAttribute(a)},el=a=>e.target.closest('['+a+']');let v;
+ if(!e.target.closest('#menu,#mb'))$('#menu').classList.remove('on');
+ if(v=g('data-c'))toggle(v);
+ else if(v=g('data-d'))arm(el('data-d'),'🗑',()=>{PEND.d.push(v);delete PEND.t[v];saveP();render();later()});
+ else if(v=g('data-e')){const o=tasks().find(x=>x.id===v);const n=o&&prompt('Edit task',o.title);if(n&&n.trim())change({...o,title:n.trim()})}
+ else if(e.target.closest('[data-f]')){fp=g('data-f');render()}
+ else if(v=g('data-u'))arm(el('data-u'),'Remove',()=>adm('delUser',{email:v}));
+ else if(v=g('data-t')){tab=v;render();scrollTo(0,0)}});
+$('#mb').onclick=()=>$('#menu').classList.toggle('on');$('#ob').onclick=()=>$('#opt').classList.toggle('on');
+$('#at').onclick=addT;$('#nt').onkeydown=e=>{if(e.key==='Enter')addT()};
+$('#uadd').onclick=async()=>{if(await adm('addUser',{email:$('#nu_em').value,name:$('#nu_nm').value})){$('#nu_em').value='';$('#nu_nm').value='';toast('Member added','They can now sign in with that Google account.')}};
+$('#sy').onclick=()=>{$('#menu').classList.remove('on');sync(true)};$('#so').onclick=()=>out();
+$('#bk').onclick=async()=>{$('#menu').classList.remove('on');const j=await api('backup',{});toast(j.error?'Backup failed':'Backup saved',j.error||'Copy placed in Drive › Team To Do Backups')};
+$('#ex').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({exported:new Date().toISOString(),tasks:D.tasks,users:D.users},null,2)],{type:'application/json'}));a.download='team-todo-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()};
+$('#nf').onclick=()=>{if(window.Notification)Notification.requestPermission().then(nfUp).catch(nfUp)};
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#inst').hidden=false});$('#inst').onclick=()=>{if(dip){dip.prompt();dip=null;$('#inst').hidden=true}};
+/* ---- start / Google sign-in ---- */
+function start(){render();nfUp();setSt('ok');sync();if(started)return;started=true;setInterval(()=>{if(!document.hidden)sync()},30000);setInterval(tick,20000);setTimeout(tick,2000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()})}
+function initG(){if(!window.google||!google.accounts)return setTimeout(initG,300);
+ google.accounts.id.initialize({client_id:APP.CLIENT_ID,callback:async r=>{$('#lm').textContent='Signing in…';
+  try{SES={token:'',me:{}};const j=await api('login',{idToken:r.credential});if(j.error)throw new Error(j.error==='denied'?'This Google account has not been added by the master.':j.error);SES.token=j.token;apply(j);seen=null;start()}
+  catch(e){SES=null;$('#lm').textContent=e.message}}});
+ google.accounts.id.renderButton($('#gbtn'),{theme:'outline',size:'large',shape:'pill',text:'signin_with'})}
+if(SES&&SES.token)start();else $('#login').style.display='flex';
+initG();
+if('serviceWorker'in navigator)addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}});
+</script></body></html>
